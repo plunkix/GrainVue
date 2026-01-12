@@ -8,7 +8,7 @@ This is a ML project — it is a **shipped, full-stack CV system solving a real 
 
 ---
 
-## 🚩 Problem Statement
+##  Problem Statement
 
 Seed certification labs rely on visual inspection to verify genetic purity.  
 For **Shree101 rice seeds**, this task is extremely difficult because:
@@ -32,17 +32,17 @@ False negatives are costly, so the system must prioritize **decision reliability
 
 GrainVue uses a **three-stage computer vision pipeline** designed for robustness, speed, and safe decision-making.
 
-### 1️⃣ Seed Detection  
+### 1️ Seed Detection  
 - **Model:** Faster R-CNN (ResNet50 backbone)  
 - Detects and isolates individual seeds from raw images  
 - Filters overlapping, low-quality, and noisy samples  
 
-### 2️⃣ Metric Learning Filter  
+### 2️ Metric Learning Filter  
 - **Model:** EfficientNet-B3 with ArcFace loss  
 - Learns an embedding space where Shree101 forms a tight cluster  
 - Rejects **60–70%** of non-target varieties early using distance thresholds  
 
-### 3️⃣ Fine-Grained Classification  
+### 3️ Fine-Grained Classification  
 - **Dual-backbone CNN:** EfficientNet-B3 + ResNet50  
 - Applied only to borderline cases  
 - Produces final classification with uncertainty handling  
@@ -51,7 +51,7 @@ This staged approach balances **accuracy, inference cost, and risk control**.
 
 ---
 
-## 📊 Results
+##  Results
 
 - **Final accuracy:** 98.14%  
 - **False negatives:** 1.1% (within certification tolerance)  
@@ -64,7 +64,7 @@ The system generalizes well to **unseen rice varieties**, which is critical for 
 
 ---
 
-## 🧩 Why This Works
+##  Why This Works
 
 Key design decisions:
 
@@ -78,7 +78,7 @@ The goal was **reliable decisions**, not leaderboard metrics.
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 **Machine Learning / CV**
 - PyTorch
@@ -98,7 +98,7 @@ The goal was **reliable decisions**, not leaderboard metrics.
 
 ---
 
-## 🚀 Deployment & Interfaces
+##  Deployment & Interfaces
 
 GrainVue was deployed across multiple user-facing platforms:
 
@@ -118,6 +118,7 @@ A short walkthrough demonstrating:
 - Uncertainty handling
 - End-to-end application flow
 
-▶️ Demo video link: <PASTE LINK HERE>
+><>< Demo video link: <PASTE LINK HERE>
+
 
 
