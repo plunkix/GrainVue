@@ -1,0 +1,348 @@
+# GrainVue Configuration File
+# Complete system configuration for three-stage pipeline
+
+models:
+  detection:
+    path: "models/seed_frcnn_2.pth"
+    architecture: "faster_rcnn_resnet50"
+    input_size: [800, 800]
+    
+  metric_learning:
+    path: "models/final_metric_model.pth"
+    architecture: "efficientnet_b3"
+    embedding_dim: 512
+    input_size: [224, 224]
+    
+  fine_grained:
+    path: "models/improved_fine_grained_model.pth"
+    architecture: "dual_backbone"  # EfficientNet-B3 + ResNet50
+    input_size: [224, 224]
+
+# STAGE 1: DETECTION SETTINGS
+
+detection:
+  enabled: true
+  
+  # Inference parameters
+  confidence_threshold: 0.5      # Minimum confidence for detections
+  nms_threshold: 0.5             # Non-maximum suppression threshold
+  max_detections: 50             # Maximum seeds per image
+  
+  # Device settings
+  device: "cuda"                 # "cuda" or "cpu"
+  batch_size: 1                  # Batch size for detection (usually 1)
+  
+  # Preprocessing
+  normalize: true
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# QUALITY FILTERS
+
+quality_filters:
+  enabled: true
+  
+  # 1. Blur Detection
+  blur_detection:
+    enabled: true
+    threshold: 0.5               # Laplacian variance threshold
+    method: "laplacian"          # "laplacian" or "fft"
+  
+  # 2. Multi-Seed Detection
+  multi_seed_detection:
+    enabled: true
+    contour_threshold: 1         # Number of significant contours
+    min_contour_area: 100        # Minimum contour area (pixels)
+  
+  # 3. Elongation Check
+  elongation_check:
+    enabled: true
+    max_aspect_ratio: 4.2        # Maximum aspect ratio
+  
+  # 4. Valley Split Detection
+  valley_split:
+    enabled: true
+    edge_threshold: 0.25         # Sobel edge strength threshold
+    attempt_split: true          # Try to split touching seeds
+  
+  # 5. Watershed Analysis
+  watershed:
+    enabled: true
+    distance_threshold: 0.9      # Distance transform threshold
+
+
+# STAGE 2: METRIC LEARNING FILTER
+
+metric_learning:
+  enabled: true
+  
+  # Distance threshold
+  distance_threshold: 0.76       # Cosine distance to Shree101 prototype
+  distance_metric: "cosine"      # "cosine" or "euclidean"
+  
+  # Prototype
+  prototype_path: "models/shree101_prototype.npy"  # Pre-computed prototype
+  recompute_prototype: false     # Recompute from training data
+  
+  # Inference settings
+  device: "cuda"
+  batch_size: 32                 # Batch size for metric learning
+  
+  # Preprocessing
+  normalize: true
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# STAGE 3: FINE-GRAINED CLASSIFICATION
+
+fine_grained:
+  enabled: true
+  
+  # Decision thresholds
+  pass_threshold: 0.8            # P(Shree101) > 0.8 → PASS
+  reject_threshold: 0.4          # P(Shree101) < 0.4 → REJECT
+                                 # 0.4 ≤ P(Shree101) ≤ 0.8 → UNCERTAIN
+  
+  # Class weights (for training only)
+  class_weights:
+    shree101: 2.0                # Penalty for false negatives
+    others: 1.0
+  
+  # Inference settings
+  device: "cuda"
+  batch_size: 16                 # Batch size for fine-grained
+  
+  # Preprocessing
+  normalize: true
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+# PIPELINE SETTINGS
+
+pipeline:
+  # Stage control
+  skip_detection: false          # Use pre-cropped images
+  skip_metric_learning: false    # Skip Stage 2 (not recommended)
+  
+  # Output settings
+  save_crops: true               # Save individual seed crops
+  save_visualizations: true      # Save annotated images
+  save_embeddings: false         # Save metric learning embeddings
+  
+  # Uncertainty handling
+  manual_review_uncertain: true  # Flag uncertain cases
+  uncertain_threshold_strict: 0.7  # Stricter threshold if needed
+
+
+# DATA AUGMENTATION (TRAINING ONLY)
+
+augmentation:
+  train:
+    enabled: true
+    
+    # Geometric transforms
+    rotation: 180                # Random rotation (±degrees)
+    horizontal_flip: 0.5         # Probability
+    vertical_flip: 0.5           # Probability
+    
+    # Color transforms (minimal for preserving details)
+    brightness: 0.1              # Brightness jitter
+    contrast: 0.1                # Contrast jitter
+    saturation: 0.05             # Saturation jitter
+    hue: 0.02                    # Hue jitter
+    
+    # Affine transforms (minimal)
+    translate: [0.03, 0.03]      # Translation range
+    scale: [0.97, 1.03]          # Scale range
+    shear: 0                     # Shear range
+  
+  val:
+    enabled: false               # No augmentation for validation
+
+
+# TRAINING SETTINGS
+
+training:
+  # Data splits
+  train_ratio: 0.65
+  val_ratio: 0.20
+  test_ratio: 0.15
+  
+  # Hyperparameters
+  epochs: 50
+  batch_size: 32
+  learning_rate: 5e-5
+  weight_decay: 5e-4
+  
+  # Optimizer
+  optimizer: "adamw"             # "adamw", "sgd", "adam"
+  momentum: 0.9                  # For SGD
+  
+  # Learning rate scheduler
+  scheduler: "reduce_on_plateau"
+  scheduler_factor: 0.5
+  scheduler_patience: 3
+  
+  # Early stopping
+  early_stopping: true
+  patience: 8
+  
+  # Regularization
+  dropout: 0.5
+  label_smoothing: 0.0           # Label smoothing factor
+  
+  # Gradient clipping
+  grad_clip: 1.0
+
+
+# LOGGING AND CHECKPOINTING
+
+logging:
+  # Experiment tracking
+  experiment_name: "grainvue_production"
+  log_dir: "logs/"
+  
+  # Tensorboard
+  tensorboard: true
+  tensorboard_dir: "runs/"
+  
+  # Checkpoints
+  checkpoint_dir: "checkpoints/"
+  save_best_only: true
+  save_frequency: 5              # Save every N epochs
+  
+  # Metrics logging
+  log_frequency: 10              # Log every N batches
+  log_histograms: false          # Log weight histograms
+
+# INFERENCE SETTINGS
+
+inference:
+  # Device
+  device: "cuda"                 # "cuda" or "cpu"
+  
+  # Batch processing
+  batch_size: 16
+  num_workers: 4
+  
+  # Output format
+  output_format: "json"          # "json", "csv", "txt"
+  include_probabilities: true
+  include_embeddings: false
+  include_bounding_boxes: true
+  
+  # Visualization
+  visualize: true
+  bbox_color_shree101: [0, 255, 0]     # Green
+  bbox_color_others: [255, 0, 0]        # Red
+  bbox_color_uncertain: [255, 255, 0]   # Yellow
+  bbox_thickness: 2
+  font_size: 0.5
+  
+# DATASET PATHS
+
+dataset:
+  # Training data
+  shree101_path: "/path/to/shree101/images"
+  
+  superfine_varieties:
+    RNR: "/path/to/rnr/images"
+    JSR: "/path/to/jsr/images"
+    Elito: "/path/to/elito/images"
+    Kaveri7155: "/path/to/kaveri7155/images"
+    Chintu: "/path/to/chintu/images"
+    ARV511: "/path/to/arv-511/images"
+    YSR: "/path/to/ysr/images"
+  
+  # Validation/Test data
+  test_path: "/path/to/test/images"
+  
+  # Holdout varieties (unseen during training)
+  holdout_varieties:
+    - "ca24"
+    - "ca149"
+    - "ca160"
+    - "BPT"
+    - "Padma"
+    - "Shatak"
+    - "Shatayu"
+
+# SYSTEM SETTINGS
+
+system:
+  # Hardware
+  cuda_visible_devices: "0"      # GPU IDs (comma-separated)
+  mixed_precision: true          # FP16 training/inference
+  
+  # Memory
+  pin_memory: true
+  prefetch_factor: 2
+  
+  # Multiprocessing
+  num_workers: 4
+  persistent_workers: true
+  
+  # Seed for reproducibility
+  random_seed: 42
+
+# API SETTINGS (for REST API)
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false                  # Auto-reload on code changes
+  
+  # CORS
+  cors_enabled: true
+  allowed_origins: ["*"]
+  
+  # Rate limiting
+  rate_limit_enabled: false
+  max_requests_per_minute: 60
+  
+  # Upload limits
+  max_file_size_mb: 10
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp"]
+
+# DATABASE SETTINGS
+
+database:
+  # SQLite database for tracking results
+  enabled: true
+  path: "grainvue.db"
+  
+  # Tables
+  track_history: true            # Save all inference results
+  track_metrics: true            # Save performance metrics
+  
+  # Cleanup
+  auto_cleanup: false
+  retention_days: 90             # Delete records older than N days
+
+# ============================================================
+# ALERTS AND MONITORING
+# ============================================================
+monitoring:
+  # Performance alerts
+  alert_on_low_accuracy: true
+  accuracy_threshold: 0.90
+  
+  # System alerts
+  alert_on_memory_usage: true
+  memory_threshold_percent: 90
+  
+  # Email notifications (optional)
+  email_alerts: false
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  email_from: "alerts@example.com"
+  email_to: ["admin@example.com"]
+
+# ============================================================
+# VERSION INFO
+# ============================================================
+version:
+  config_version: "1.0"
+  model_version: "exp-14"
+  system_version: "v3.0"
+  last_updated: "2025-12-16"
