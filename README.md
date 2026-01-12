@@ -28,7 +28,7 @@ False negatives are costly, so the system must prioritize **decision reliability
 
 ---
 
-## 🧠 Solution Overview
+## Solution Overview
 
 GrainVue uses a **three-stage computer vision pipeline** designed for robustness, speed, and safe decision-making.
 
@@ -119,6 +119,7 @@ A short walkthrough demonstrating:
 - End-to-end application flow
 
 ><>< Demo video link: <PASTE LINK HERE>
+
 
 
 
